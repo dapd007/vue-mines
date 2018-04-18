@@ -1,32 +1,42 @@
 <template>
-  <section class="hero is-fullheight">
-    <div class="hero-body">
-      <div class="container">
+  <section class="game-page">
+    <main class="game-container">
         <div class="columns is-centered">
           <div class="column is-10">
             <div class="columns game-row" v-for="row in rows" @click.right.prevent="() => {}">
               <div class="column game-col" :key="cell.row + '-' + cell.column" v-for="cell in row">
                 <div class="ms-box"
-                     @dblclick="revealAdjacent(cell)"
+                     @dblclick="handleDoubleClick(cell)"
                      @click.left="revealCell(cell)"
                      @click.right.prevent="flagCell(cell)"
                      :class="{
-                       'is-blank': cell.mineCount === 0,
+                       'is-blank': cell.mineCount === 0 && !cell.isMine,
                        'is-flag' : cell.isFlagged,
                        'is-mine': cell.isMine,
-                       'is-revealed': cell.isRevealed
-                     }"
+                       'is-revealed': cell.isRevealed,
+                   }"
+                     :style="getCellStyles(cell)"
                 >
                   <div class="cell-content" v-if="cell.isRevealed">
                     <span class="cell-number" v-if="cell.mineCount > 0">{{ cell.mineCount }}</span>
+                    <i class="fas fa-bomb" v-else-if="cell.isMine"></i>
+                  </div>
+                  <div class="cell-content" v-else-if="cell.isFlagged">
+                    <i class="fas fa-flag"></i>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+    </main>
+    <aside class="game-sidebar">
+      <p>Total mines: {{minesNumber}}</p>
+      <p>Flags: {{flagsCount}}</p>
+      <div class="game-sidebar--actions">
+        <button class="button is-primary" @click="startGame">Start over</button>
       </div>
-    </div>
+    </aside>
   </section>
 </template>
 
@@ -39,21 +49,31 @@
       return {
         mines: [],
         rows: [],
-        rowsNumber: 16,
-        columnsNumber: 30,
-        minesNumber: 99
+        rowsNumber: 10,
+        columnsNumber: 16,
+        minesNumber: 45,
+        flagsCount: 0,
+        gameOver: false,
       }
     },
     mounted() {
-      //  Create basic board
-      this.createBoard();
-      //  Set random mines
-      this.setMinesRandomly();
-      //  Calculate mines
-      this.calculateCellMines();
+      this.startGame();
     },
     methods: {
+      startGame() {
+        this.gameOver = false;
+        //  Create basic board
+        this.createBoard();
+        //  Set random mines
+        this.setMinesRandomly();
+        //  Calculate mines
+        this.calculateCellMines();
+      },
       createBoard() {
+        //  Reset board
+        this.mines = [];
+        this.rows = [];
+        this.flagsCount = 0;
 
         //  Create rows
         for ( let i = 0; i < this.rowsNumber; i++ ) {
@@ -105,7 +125,6 @@
         return cells;
       },
       calculateCellMines() {
-
         this.mines.forEach(mine => {
           const adjacentCells = this.getAdjacentCells(mine);
           adjacentCells.forEach( cell => {
@@ -115,19 +134,38 @@
           });
         });
       },
+      getCellStyles(cell) {
+        const colors = [
+          'rgba(84,175,96,.35)',
+          'rgba(103,162,96,.35)',
+          'rgba(255,166,90,.35)',
+          'rgba(255,148,91,.35)',
+          'rgba(160,122,96,.35)',
+          'rgba(179,109,96,.35)',
+          'rgba(198,96,96,.35)',
+          'rgba(217,82,96,.35)',
+          'rgba(236,69,96,.35)',
+        ];
+
+        if ( cell.mineCount === 0 || !cell.isRevealed )
+          return {};
+        return {
+          'backgroundColor': colors[cell.mineCount - 1]
+        };
+      },
       //  Game actions
       revealCell(cell) {
-        if ( !cell.isRevealed ) {
+        if ( !this.gameOver && !cell.isRevealed && !cell.isFlagged ) {
           cell.isRevealed = true;
           if ( cell.isMine && !cell.isFlagged ) {
-            console.log('gg');
+            this.gameLost();
           } else {
             this.revealAdjacent(cell);
           }
         }
       },
       revealAdjacent(cell) {
-        if ( cell.isRevealed ) {
+        if ( !this.gameOver && cell.isRevealed ) {
           const adjacent = this.getAdjacentCells(cell);
           adjacent.forEach( adj => {
             if ( !adj.isMine && !adj.isRevealed ) {
@@ -141,27 +179,89 @@
           });
         }
       },
-      handleDoubleClick() {
-        //  todo
-        //  if adjacentFlags === adjacentMines
-        //    if adjacentFlags are indeed mines, revealAdjacent
-        //    else GG
+      handleDoubleClick(cell) {
+        if ( !this.gameOver ) {
+          const adjacent = this.getAdjacentCells(cell);
+          const flags = adjacent.filter( cell => cell.isFlagged );
+
+          if ( flags.length === cell.mineCount ) {
+            const result = flags.filter( flag => flag.isMine );
+
+            if ( result.length === flags.length ) {
+              this.revealAdjacent(cell);
+            } else {
+              this.gameLost();
+            }
+          }
+        }
       },
       flagCell(cell) {
         if ( !cell.isRevealed ) {
           cell.isFlagged = !cell.isFlagged;
+
+          if ( cell.isFlagged )
+            this.flagsCount++;
+          else
+            this.flagsCount--;
         }
+      },
+      gameLost() {
+        this.gameOver = true;
+        this.revealMines();
+      },
+      revealMines() {
+        this.mines.forEach( mine => {
+          mine.isRevealed = true;
+        });
       }
     }
   }
 </script>
 
 <style lang="scss" scoped>
+  .game-page {
+    height: 100vh;
+    display: flex;
+  }
+
+  main.game-container {
+    width: 80%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    & > .columns {
+      width: 100%;
+    }
+  }
+
+  aside.game-sidebar {
+    position: fixed;
+    width: 20%;
+    height: 100vh;
+    top: 0;
+    right: 0;
+    background-color: #fdfdfd;
+    border-left: 2px solid #f0f0f0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+
+    .game-sidebar--actions {
+      margin-top: auto;
+
+      .button {
+        width: 100%;
+      }
+    }
+  }
+
   .game-col {
     padding: 0.2rem;
   }
 
   .ms-box {
+    color: #000;
     cursor: pointer;
     border-radius: 3px;
     position: relative;
@@ -182,10 +282,16 @@
 
     &.is-mine.is-revealed {
       background-color: hsl(348, 100%, 61%);
+
+      &.is-flag {
+        background-color: hsl(141, 71%, 48%);
+        color: #000;
+      }
     }
 
     &.is-flag {
-      background-color: hsl(204, 86%, 53%);
+      background-color:hsl(0, 0%, 85%);
+      color: hsl(204, 86%, 53%);
     }
 
     &:after {
