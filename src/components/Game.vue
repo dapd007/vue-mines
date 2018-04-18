@@ -1,9 +1,12 @@
 <template>
   <section class="game-page">
+    <b-modal class="difficulty-modal" :active.sync="isDifficultyPickerActive" :can-cancel="false">
+      <difficulty-picker v-model="game.settings" :choices="difficulties" v-on:picked="startGame"></difficulty-picker>
+    </b-modal>
     <main class="game-container">
         <div class="columns is-centered">
           <div class="column is-10">
-            <div class="columns game-row" v-for="row in rows" @click.right.prevent="() => {}">
+            <div class="columns game-row" v-for="row in game.rows" @click.right.prevent="() => {}">
               <div class="column game-col" :key="cell.row + '-' + cell.column" v-for="cell in row">
                 <div class="ms-box"
                      @dblclick="handleDoubleClick(cell)"
@@ -31,56 +34,87 @@
         </div>
     </main>
     <aside class="game-sidebar">
-      <p>Total mines: {{minesNumber}}</p>
-      <p>Flags: {{flagsCount}}</p>
-      <div class="game-sidebar--actions">
-        <button class="button is-primary" @click="startGame">Start over</button>
-      </div>
+      <template v-if="game.isSetUp">
+        <p>Total mines: {{game.settings.minesNumber}}</p>
+        <p>Flags: {{game.flagsCount}}</p>
+        <div class="game-sidebar--actions">
+          <button class="button is-info" @click="startGame">Start over</button>
+          <button class="button" @click="changeDifficulty">Change difficulty</button>
+        </div>
+      </template>
     </aside>
   </section>
 </template>
 
 <script>
   import { EventBus } from "../EventBus";
+  import DifficultyPicker from './DifficultyPicker';
 
   export default {
     name: "game",
+    components: { DifficultyPicker },
     data() {
       return {
-        mines: [],
-        rows: [],
-        rowsNumber: 10,
-        columnsNumber: 16,
-        minesNumber: 45,
-        flagsCount: 0,
-        gameOver: false,
+        isDifficultyPickerActive: false,
+        difficulties: [
+          {
+            rowsNumber: 7,
+            columnsNumber: 10,
+            minesNumber: 15
+          },
+          {
+            rowsNumber: 8,
+            columnsNumber: 32,
+            minesNumber: 40
+          },
+          {
+            rowsNumber: 16,
+            columnsNumber: 30,
+            minesNumber: 99
+          }
+        ],
+        game: {
+          settings: {},
+          mines: [],
+          rows: [],
+          flagsCount: 0,
+          isCreated: false,
+          isOver: false,
+        },
       }
     },
     mounted() {
-      this.startGame();
+      this.isDifficultyPickerActive = true;
     },
     methods: {
+      changeDifficulty() {
+        this.game.isSetUp = false;
+        this.isDifficultyPickerActive = true;
+      },
       startGame() {
-        this.gameOver = false;
+        this.game.isOver = false;
         //  Create basic board
         this.createBoard();
         //  Set random mines
         this.setMinesRandomly();
         //  Calculate mines
         this.calculateCellMines();
+
+        this.game.isSetUp = true;
+        this.isDifficultyPickerActive = false;
       },
       createBoard() {
         //  Reset board
-        this.mines = [];
-        this.rows = [];
-        this.flagsCount = 0;
+        this.game.mines = [];
+        this.game.rows = [];
+        this.game.flagsCount = 0;
 
         //  Create rows
-        for ( let i = 0; i < this.rowsNumber; i++ ) {
+        for ( let i = 0; i < this.game.settings.rowsNumber; i++ ) {
 
           let row = [];
 
-          for ( let j = 0; j < this.columnsNumber; j++ ) {
+          for ( let j = 0; j < this.game.settings.columnsNumber; j++ ) {
 
             const cell = {
               mineCount: 0,
@@ -95,18 +129,18 @@
             row.push(cell);
           }
 
-          this.rows.push(row);
+          this.game.rows.push(row);
         }
       },
       setMinesRandomly() {
         let added = 0;
-        while (added < this.minesNumber) {
-          const randomRow = Math.floor((Math.random() * this.rowsNumber));
-          const randomCol = Math.floor((Math.random() * this.columnsNumber));
+        while (added < this.game.settings.minesNumber) {
+          const randomRow = Math.floor((Math.random() * this.game.settings.rowsNumber));
+          const randomCol = Math.floor((Math.random() * this.game.settings.columnsNumber));
 
-          if ( this.mines.filter( mine => mine.row === randomRow && mine.column === randomCol  ).length === 0 ) {
-            this.rows[randomRow][randomCol].isMine = true;
-            this.mines.push(this.rows[randomRow][randomCol]);
+          if ( this.game.mines.filter( mine => mine.row === randomRow && mine.column === randomCol  ).length === 0 ) {
+            this.game.rows[randomRow][randomCol].isMine = true;
+            this.game.mines.push(this.game.rows[randomRow][randomCol]);
             added++;
           }
         }
@@ -116,8 +150,8 @@
         for (let dRow = -1; dRow <= 1; ++dRow) {
           for (let dCol = -1; dCol <= 1; ++dCol) {
             if (dRow !== 0 || dCol !== 0) {
-              if ( this.rows[ cell.row + dRow ] !== undefined && this.rows[ cell.row + dRow ][ cell.column + dCol ] !== undefined ) {
-                cells.push(this.rows[ cell.row + dRow ][ cell.column + dCol ]);
+              if ( this.game.rows[ cell.row + dRow ] !== undefined && this.game.rows[ cell.row + dRow ][ cell.column + dCol ] !== undefined ) {
+                cells.push(this.game.rows[ cell.row + dRow ][ cell.column + dCol ]);
               }
             }
           }
@@ -125,7 +159,7 @@
         return cells;
       },
       calculateCellMines() {
-        this.mines.forEach(mine => {
+        this.game.mines.forEach(mine => {
           const adjacentCells = this.getAdjacentCells(mine);
           adjacentCells.forEach( cell => {
             if ( !cell.isMine ) {
@@ -154,18 +188,28 @@
         };
       },
       //  Game actions
+      checkWin() {
+        if ( this.game.flagsCount === this.game.mines.length ) {
+          const flaggedMines = this.game.mines.filter( mine => mine.isFlagged = true );
+
+          if ( flaggedMines.length === this.game.flagsCount ) {
+            this.gameWon();
+          }
+        }
+      },
       revealCell(cell) {
-        if ( !this.gameOver && !cell.isRevealed && !cell.isFlagged ) {
+        if ( !this.game.isOver && !cell.isRevealed && !cell.isFlagged ) {
           cell.isRevealed = true;
           if ( cell.isMine && !cell.isFlagged ) {
             this.gameLost();
           } else {
             this.revealAdjacent(cell);
+            this.checkWin();
           }
         }
       },
       revealAdjacent(cell) {
-        if ( !this.gameOver && cell.isRevealed ) {
+        if ( !this.game.isOver && cell.isRevealed ) {
           const adjacent = this.getAdjacentCells(cell);
           adjacent.forEach( adj => {
             if ( !adj.isMine && !adj.isRevealed ) {
@@ -180,7 +224,7 @@
         }
       },
       handleDoubleClick(cell) {
-        if ( !this.gameOver ) {
+        if ( !this.game.isOver ) {
           const adjacent = this.getAdjacentCells(cell);
           const flags = adjacent.filter( cell => cell.isFlagged );
 
@@ -200,25 +244,55 @@
           cell.isFlagged = !cell.isFlagged;
 
           if ( cell.isFlagged )
-            this.flagsCount++;
+            this.game.flagsCount++;
           else
-            this.flagsCount--;
+            this.game.flagsCount--;
+
+          this.checkWin();
         }
       },
-      gameLost() {
-        this.gameOver = true;
-        this.revealMines();
+      gameWon() {
+        this.game.isOver = true;
+        this.revealAll();
+
+        this.$snackbar.open({
+          message: 'You won, yay!',
+          type: 'is-success',
+          position: 'is-top',
+          actionText: 'New game',
+          duration: 5000,
+          onAction: () => {
+            this.startGame();
+          }
+        });
       },
-      revealMines() {
-        this.mines.forEach( mine => {
-          mine.isRevealed = true;
+      gameLost() {
+        this.game.isOver = true;
+        this.revealAll();
+
+        this.$snackbar.open({
+          message: ':( you just blew yourself up!',
+          type: 'is-danger',
+          position: 'is-top',
+          actionText: 'try again',
+          duration: 5000,
+          onAction: () => {
+            this.startGame();
+          }
+        });
+      },
+      revealAll() {
+        this.game.rows.forEach( row => {
+          row.forEach( cell => {
+            cell.isRevealed = true;
+          });
         });
       }
     }
   }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
   .game-page {
     height: 100vh;
     display: flex;
@@ -252,6 +326,10 @@
 
       .button {
         width: 100%;
+
+        &:not(:last-child) {
+          margin-bottom: 10px;
+        }
       }
     }
   }
@@ -313,5 +391,10 @@
       justify-content: center;
       font-size: 26px;
     }
+  }
+
+  .difficulty-modal .modal-content {
+    width: 960px;
+    padding: .75rem;
   }
 </style>
