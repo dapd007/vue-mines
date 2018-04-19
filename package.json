@@ -1,9 +1,8 @@
 {
   "name": "vue-minesweeper",
   "version": "1.0.0",
-  "description": "A modern and beautiful minesweeper",
-  "author": "David Paternina <david@fanxielab.com>",
-  "private": true,
+  "description": "A beautiful minesweeper built using VueJs and Buefy",
+  "author": "David Paternina <hi@davidpaternina.com>",
   "scripts": {
     "dev": "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js",
     "start": "npm run dev",

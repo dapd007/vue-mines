@@ -1,8 +1,6 @@
-#WIP
+# Vue Minesweeper
 
-# vue-minesweeper
-
-> A modern and beautiful minesweeper
+> A beautiful minesweeper built using [VueJs](https://vuejs.org/) and [Buefy](https://buefy.github.io)
 
 ## Build Setup
 

@@ -1,5 +1,5 @@
 <template>
-  <section class="game-page">
+  <section class="game-page" :class="selectedTheme.class">
     <b-modal class="difficulty-modal" :active.sync="isDifficultyPickerActive" :can-cancel="false">
       <difficulty-picker v-model="game.settings" :choices="difficulties" v-on:picked="startGame"></difficulty-picker>
     </b-modal>
@@ -40,6 +40,12 @@
         <div class="game-sidebar--actions">
           <button class="button is-info" @click="startGame">Start over</button>
           <button class="button" @click="changeDifficulty">Change difficulty</button>
+          <b-field
+            label="Theme">
+            <b-select v-model="selectedTheme" placeholder="Pick a color theme" expanded>
+              <option :value="theme" v-for="theme in themes">{{ theme.label }}</option>
+            </b-select>
+        </b-field>
         </div>
       </template>
     </aside>
@@ -56,6 +62,16 @@
     data() {
       return {
         isDifficultyPickerActive: false,
+        themes: [
+          {
+            label: 'Dark',
+            class: 'dark-theme'
+          },
+          {
+            label: 'Light',
+            class: ''
+          }
+        ],
         difficulties: [
           {
             rowsNumber: 7,
@@ -63,8 +79,8 @@
             minesNumber: 15
           },
           {
-            rowsNumber: 8,
-            columnsNumber: 32,
+            rowsNumber: 12,
+            columnsNumber: 20,
             minesNumber: 40
           },
           {
@@ -81,9 +97,11 @@
           isCreated: false,
           isOver: false,
         },
+        selectedTheme: null
       }
     },
     mounted() {
+      this.selectedTheme = this.themes[0];
       this.isDifficultyPickerActive = true;
     },
     methods: {
@@ -396,5 +414,55 @@
   .difficulty-modal .modal-content {
     width: 960px;
     padding: .75rem;
+  }
+
+  .game-page.dark-theme {
+    background-color: #16111c;
+
+    .ms-box {
+      background-color: #292034;
+      color: #d0d0d0;
+
+      &.is-mine.is-revealed {
+        background-color: #ff3860;
+
+        &.is-flag {
+          background-color: hsl(141, 71%, 48%);
+        }
+      }
+
+      &.is-revealed.is-blank {
+        opacity: .3;
+      }
+    }
+
+    aside.game-sidebar {
+      background-color: #292034;
+      border-color: #292034;
+      color: #d0d0d0;
+
+      label {
+        color: #d0d0d0;
+      }
+
+      select, button:not(.is-info) {
+        background: #16111c;
+        color: #d0d0d0;
+        border-color: #16111c;
+      }
+    }
+
+    .box {
+      background-color: #292034;
+      color: #d0d0d0;
+
+      .box:not(.is-selected) {
+        background-color: #16111c;
+      }
+    }
+
+    .title {
+      color: #d0d0d0;
+    }
   }
 </style>
