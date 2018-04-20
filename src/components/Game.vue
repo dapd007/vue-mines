@@ -1,5 +1,5 @@
 <template>
-  <section class="game-page" :class="selectedTheme.class">
+  <section class="game-page" :class="selectedTheme ? selectedTheme.class : ''">
     <b-modal class="difficulty-modal" :active.sync="isDifficultyPickerActive" :can-cancel="false">
       <difficulty-picker v-model="game.settings" :choices="difficulties" v-on:picked="startGame"></difficulty-picker>
     </b-modal>
@@ -35,17 +35,31 @@
     </main>
     <aside class="game-sidebar">
       <template v-if="game.isSetUp">
-        <p>Total mines: {{game.settings.minesNumber}}</p>
-        <p>Flags: {{game.flagsCount}}</p>
-        <div class="game-sidebar--actions">
-          <button class="button is-info" @click="startGame">Start over</button>
-          <button class="button" @click="changeDifficulty">Change difficulty</button>
-          <b-field
-            label="Theme">
-            <b-select v-model="selectedTheme" placeholder="Pick a color theme" expanded>
-              <option :value="theme" v-for="theme in themes">{{ theme.label }}</option>
-            </b-select>
-        </b-field>
+        <h3 class="title is-4">Game</h3>
+        <div class="game-stats">
+          <p>Size: {{ game.settings.columnsNumber }} x {{ game.settings.rowsNumber }}</p>
+          <p>Mines: {{ game.settings.minesNumber }}</p>
+          <hr>
+          <p><i class="fas fa-flag"></i>{{game.flagsCount}}</p>
+        </div>
+        <!--<p>Total mines: {{game.settings.minesNumber}}</p>-->
+        <!--<p>Flags: </p>-->
+        <div class="game-sidebar--blocks">
+          <div class="sidebar-block">
+            <div class="sidebar-links">
+              <a href="https://github.com/dapd007/vue-mines" target="_blank"><i class="fab fa-github"></i> Source code</a>
+            </div>
+          </div>
+          <div class="sidebar-block">
+            <button class="button is-info" @click="startGame">Start over</button>
+            <button class="button" @click="changeDifficulty">Change difficulty</button>
+            <b-field
+              label="Theme">
+              <b-select v-model="selectedTheme" placeholder="Pick a color theme" expanded>
+                <option :value="theme" v-for="theme in themes">{{ theme.label }}</option>
+              </b-select>
+            </b-field>
+          </div>
         </div>
       </template>
     </aside>
@@ -208,6 +222,7 @@
       //  Game actions
       checkWin() {
         if ( this.game.flagsCount === this.game.mines.length ) {
+          //  TODO - There's a bug here at the end of the game
           const flaggedMines = this.game.mines.filter( mine => mine.isFlagged = true );
 
           if ( flaggedMines.length === this.game.flagsCount ) {
@@ -339,16 +354,37 @@
     display: flex;
     flex-direction: column;
 
-    .game-sidebar--actions {
+    .game-stats {
+      font-size: 20px;
+
+      p svg {
+        margin-right: 15px;
+      }
+    }
+
+    .game-sidebar--blocks {
       margin-top: auto;
 
-      .button {
-        width: 100%;
+      .sidebar-block {
+        padding-top: 20px;
+        border-top: 1px solid hsl(0, 0%, 75%);
+
+        .button {
+          width: 100%;
+
+          &:not(:last-child) {
+            margin-bottom: 10px;
+          }
+        }
 
         &:not(:last-child) {
-          margin-bottom: 10px;
+          padding-bottom: 20px;
         }
       }
+    }
+
+    .sidebar-links {
+      font-size: 20px;
     }
   }
 
@@ -361,7 +397,7 @@
     cursor: pointer;
     border-radius: 3px;
     position: relative;
-    background-color:hsl(0, 0%, 75%);
+    background-color: hsl(0, 0%, 75%);
 
     -webkit-user-select: none; /* Safari 3.1+ */
     -moz-user-select: none; /* Firefox 2+ */
@@ -441,6 +477,14 @@
       border-color: #292034;
       color: #d0d0d0;
 
+      .sidebar-block {
+        border-color: #16111c;
+      }
+
+      a {
+        color: #0f77ea;
+      }
+
       label {
         color: #d0d0d0;
       }
@@ -449,6 +493,10 @@
         background: #16111c;
         color: #d0d0d0;
         border-color: #16111c;
+      }
+
+      option {
+        color: #d0d0d0;
       }
     }
 

@@ -1,6 +1,10 @@
 # Vue Minesweeper
 
-> A beautiful minesweeper built using [VueJs](https://vuejs.org/) and [Buefy](https://buefy.github.io)
+A beautiful minesweeper built using [VueJs](https://vuejs.org/) and [Buefy](https://buefy.github.io)
+
+Game live at [http://vuemines.davidpaternina.com/](http://vuemines.davidpaternina.com/)
+
+[![Automated by Buddy](https://assets.buddy.works/automated-dark.svg)](https://buddy.works)
 
 ## Build Setup
 
